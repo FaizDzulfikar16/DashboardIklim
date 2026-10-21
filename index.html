@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Analisis Produktivitas Padi</title>
+    <!-- Load Tailwind CSS & Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
+        .canvas-wrapper { position: relative; flex-grow: 1; min-height: 380px; }
+    </style>
+</head>
+<body class="p-6">
+
+    <!-- Header -->
+    <div class="mb-8 flex justify-between items-center border-b pb-4 border-slate-200">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-800">​📊 Dashboard Analisis Agroiklim Kabupaten Bandung Barat</h1>
+            <p class="text-slate-500 text-sm">Analisis Hubungan Parameter Suhu dan Curah Hujan terhadap Produktivitas Padi (2021-2025)</p>
+        </div>
+        <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1.5 rounded-full">Periode 2021-2025</span>
+    </div>
+
+    <!-- Row 1: KPI Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card p-5 border-l-4 border-blue-500">
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">R² Model Ganda</p>
+            <h3 class="text-2xl font-bold text-slate-700 mt-1" id="kpi-r2">-</h3>
+            <p class="text-xs text-slate-400 mt-1">Proporsi pengaruh simultan</p>
+        </div>
+        <div class="card p-5 border-l-4 border-orange-500">
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Optimum Suhu Rata-rata</p>
+            <h3 class="text-2xl font-bold text-slate-700 mt-1" id="kpi-opt-suhu">-</h3>
+            <p class="text-xs text-emerald-600 mt-1 font-medium">✓ Di dalam rentang data</p>
+        </div>
+        <div class="card p-5 border-l-4 border-green-500">
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Optimum Curah Hujan</p>
+            <h3 class="text-2xl font-bold text-slate-700 mt-1" id="kpi-opt-ch">-</h3>
+            <p class="text-xs text-emerald-600 mt-1 font-medium">✓ Di dalam rentang data</p>
+        </div>
+        <div class="card p-5 border-l-4 border-indigo-500">
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">RMSE Fit Ganda</p>
+            <h3 class="text-2xl font-bold text-slate-700 mt-1">1.5739 <span class="text-sm font-normal text-slate-500">ku/ha</span></h3>
+            <p class="text-xs text-slate-400 mt-1">Akurasi pengepasan model</p>
+        </div>
+    </div>
+
+    <!-- Row 2: Grafis Visualisasi Utama & Interpretasi Dinamis -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <!-- Chart Box Kiri: Kurva Regresi Kuadratik -->
+        <div class="card p-6 lg:col-span-2 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">​📈 Kurva Pengaruh Kuadratik Tunggal</h3>
+                <select id="select-x" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 focus:ring-blue-500">
+                    <option value="suhu_min">Suhu Minimum (°C)</option>
+                    <option value="suhu_rata" selected>Suhu Rata-rata (°C)</option>
+                    <option value="suhu_maks">Suhu Maksimum (°C)</option>
+                    <option value="curah_hujan">Curah Hujan (mm/bulan)</option>
+                </select>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="chart-kuadratik"></canvas>
+            </div>
+            <!-- Panel Interpretasi Makna Akademis Dinamis -->
+            <div class="mt-6 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <span>​📖 Interpretasi Ilmiah Akademis Model:</span>
+                </h4>
+                <p class="text-sm text-slate-600 mt-2 leading-relaxed" id="panel-interpretasi">
+                    Memuat teks penjelasan...
+                </p>
+            </div>
+        </div>
+
+        <!-- Chart Box Kanan: Proyeksi Regresi Ganda -->
+        <div class="card p-6 flex flex-col justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">​📊 Model Regresi Ganda (Aktual vs Prediksi)</h3>
+                <div class="canvas-wrapper" style="min-height: 250px;">
+                    <canvas id="chart-ganda"></canvas>
+                </div>
+            </div>
+            <div class="mt-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <h4 class="text-sm font-bold text-slate-700">​🔍 Makna Regresi Berganda</h4>
+                <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                    Persamaan: <strong>Y = -21.60 + 2.88(Suhu) + 0.03(CH)</strong>. Setiap kenaikan 1°C suhu rata-rata (curah hujan konstan) meningkatkan produktivitas sebesar 2.88 ku/ha. Gabungan kedua variabel menjelaskan <strong>37.24%</strong> variabilitas hasil padi di KBB.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3: Tabel Koefisien Regresi Terpadu -->
+    <div class="card p-6 overflow-hidden mb-4">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">​📋 Tabel Koefisien Regresi (Tingkat Kepercayaan 95%)</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm text-left text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 uppercase text-xs font-bold">
+                    <tr>
+                        <th class="px-6 py-3">Model & Variabel</th>
+                        <th class="px-6 py-3 text-right">Koefisien (B)</th>
+                        <th class="px-6 py-3 text-right">Std. Error</th>
+                        <th class="px-6 py-3 text-right">t-Statistik</th>
+                        <th class="px-6 py-3 text-right">p-Value</th>
+                        <th class="px-6 py-3 text-right">R²</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100" id="table-body">
+                    <!-- Isi tabel akan dirender oleh JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Script Logika Frontend -->
+    <script>
+        const data = {"tahun": [2021, 2022, 2023, 2024, 2025], "y": [52.97, 52.62, 53.62, 53.99, 58.12], "suhu_min": {"params": [-4053.5312683519596, 467.265860926112, -13.279304472240115], "bse": [2196.8811409785044, 249.8946074315938, 7.102185654544227], "tvalues": [-1.8451299857517516, 1.8698517176046763, -1.8697489925152198], "pvalues": [0.20631345356187514, 0.2024275253680863, 0.20244347013810376], "r2": 0.6361234328970446, "f_pvalue": 0.36387656710295524, "opt": 17.593762606426928, "raw_x": [17.23, 18.15, 17.05, 17.07, 17.59]}, "suhu_rata": {"params": [-14004.964994973861, 1186.6686231697743, -25.037222161523598], "bse": [13561.108613881875, 1145.7852455717746, 24.19968376173591], "tvalues": [-1.0327300955791794, 1.0356815360958833, -1.0346094770507699], "pvalues": [0.410256555909124, 0.40915895273123015, 0.4095572592146538], "r2": 0.3635183644768446, "f_pvalue": 0.6364816355231554, "opt": 23.698088699979838, "raw_x": [23.39, 23.35, 23.74, 24.01, 23.57]}, "suhu_maks": {"params": [4578.095508288798, -289.1922217161355, 4.617748585192298], "bse": [2158.7953420411422, 138.45416253023063, 2.218360301616579], "tvalues": [2.1206713851625256, -2.0887217576646866, 2.081604409268963], "pvalues": [0.168028051296258, 0.17194750890001312, 0.1728375368280817], "r2": 0.7262198871542567, "f_pvalue": 0.27378011284574333, "opt": 31.31311897788093, "raw_x": [30.32, 30.63, 32.16, 30.55, 30.09]}, "curah_hujan": {"params": [102.30291814698073, -0.4369252855869981, 0.0009454606709321507], "bse": [17.83648366170557, 0.14899496893146427, 0.00030397773107889835], "tvalues": [5.735599016448641, -2.9324834839757443, 3.110295835081266], "pvalues": [0.029078457835645107, 0.09927188825032504, 0.08968234218968602], "r2": 0.873507389360835, "f_pvalue": 0.12649261063916498, "opt": 231.06475976215052, "raw_x": [268.86, 275.479166666667, 186.886666666667, 264.206666666667, 311.395833333333]}, "ganda": {"params": [-21.604554211937824, 2.876490740645412, 0.030412773587267114], "bse": [116.9533763939487, 4.841415949967247, 0.02881420348490998], "tvalues": [-0.18472792216929676, 0.5941424513762079, 1.0554785456136002], "pvalues": [0.8704779259921155, 0.6126717840833753, 0.40188090434806945], "r2": 0.37243354282967667, "f_pvalue": 0.6275664571703233, "pred": [53.853342518431, 53.93959010597492, 52.36707785079666, 55.495246004538416, 55.66474352025956]}};
+
+        // Inisialisasi KPI
+        document.getElementById('kpi-r2').innerText = (data.ganda.r2 * 100).toFixed(2) + '%';
+        document.getElementById('kpi-opt-suhu').innerText = data.suhu_rata.opt.toFixed(2) + ' °C';
+        document.getElementById('kpi-opt-ch').innerText = data.curah_hujan.opt.toFixed(2) + ' mm';
+
+        // Database Interpretasi Akademis Dinamis
+        const interpretasiDB = {
+            suhu_min: `
+                <strong>Model Regresi Kuadratik Suhu Minimum:</strong><br>
+                Y = -4053.53 + 467.27(X) - 13.28(X²). Model ini memiliki nilai R² = 63.61%.<br>
+                <span class='block mt-2 text-slate-500 text-xs leading-normal'>
+                <strong>Interpretasi Akademis:</strong> Pengaruh suhu minimum terhadap produktivitas padi mengikuti kurva parabola terbalik (concave down) dengan koefisien negatif pada variabel kuadratik (-13.28). Titik balik optimum fisis berada pada <strong>17.59°C</strong>, yang berada tepat dalam rentang pengamatan riil. Hal ini secara agronomi mengindikasikan bahwa suhu udara dingin malam hari yang optimal memicu translokasi asimilat yang seimbang, namun peningkatan suhu minimum di atas batas optimum tersebut justru akan meningkatkan laju respirasi malam hari tanaman, menyebabkan pemborosan energi karbohidrat dan akhirnya menurunkan hasil panen.
+                </span>`,
+            suhu_rata: `
+                <strong>Model Regresi Kuadratik Suhu Rata-rata:</strong><br>
+                Y = -14004.96 + 1186.67(X) - 25.04(X²). Model ini memiliki nilai R² = 36.35%.<br>
+                <span class='block mt-2 text-slate-500 text-xs leading-normal'>
+                <strong>Interpretasi Akademis:</strong> Pola hubungan bersifat parabolik dengan titik optimum fisis pada suhu rata-rata harian sebesar <strong>23.70°C</strong>. Suhu rata-rata harian merupakan pendorong laju fotosintesis neto. Di bawah batas optimum, proses biokimia tumbuhan berjalan lambat, sedangkan suhu ekstrem di atas 24°C mengganggu struktur enzim kloroplas dan mempercepat senesensi daun. Keberadaan kurva ini mengonfirmasi pentingnya pemeliharaan iklim mikro persawahan melalui sistem agroforestri atau pola tanam terpadu di Bandung Barat.
+                </span>`,
+            suhu_maks: `
+                <strong>Model Regresi Kuadratik Suhu Maksimum:</strong><br>
+                Y = 4578.10 - 289.19(X) + 4.62(X²). Model ini memiliki nilai R² = 72.62%.<br>
+                <span class='block mt-2 text-slate-500 text-xs leading-normal'>
+                <strong>Interpretasi Akademis:</strong> Berbeda dengan suhu rata-rata, model suhu maksimum menunjukkan parabola terbuka ke atas (concave up) dengan titik terendah (minimum lokal) pada <strong>31.31°C</strong>. Hal ini menjelaskan efek cekaman panas siang hari. Suhu siang hari mendekati 31°C menimbulkan transpirasi ekstrem dan penutupan stomata parsial yang menurunkan asimilasi karbon secara drastis. Namun, ketika suhu melonjak lebih tinggi, produktivitas teoritis tampak naik kembali, yang kemungkinan merefleksikan peningkatan radiasi matahari kumulatif yang menyertai kondisi langit cerah bebas awan, asalkan pasokan air irigasi tetap tercukupi.
+                </span>`,
+            curah_hujan: `
+                <strong>Model Regresi Kuadratik Curah Hujan (CH):</strong><br>
+                Y = 102.30 - 0.44(X) + 0.0009(X²). Model ini memiliki nilai R² = 87.35%.<br>
+                <span class='block mt-2 text-slate-500 text-xs leading-normal'>
+                <strong>Interpretasi Akademis:</strong> Memiliki koefisien kuadratik positif (+0.0009) yang membentuk kurva mangkuk (concave up) dengan titik kritis di <strong>231.06 mm/bulan</strong>. Hal ini mengilustrasikan kondisi fluktuasi air ekstrem: ketersediaan curah hujan sedang (~230 mm) merupakan ambang batas minimal yang berpotensi memicu kerawanan air jika tidak dikelola. Namun, curah hujan yang tinggi (>270 mm/bulan) mendorong ketersediaan air limpasan permukaan yang berlimpah untuk mengairi lahan persawahan tadah hujan di dataran tinggi Bandung Barat secara kontinu, asalkan tidak terjadi bencana banjir bandang.
+                </span>`
+        };
+
+        // Render Tabel Koefisien
+        const tableBody = document.getElementById('table-body');
+        const rows = [
+            { name: "Regresi Kuadratik Suhu Min (Konstanta)", val: data.suhu_min.params[0], se: data.suhu_min.bse[0], t: data.suhu_min.tvalues[0], p: data.suhu_min.pvalues[0], r2: data.suhu_min.r2 },
+            { name: "Regresi Kuadratik Suhu Min (X)", val: data.suhu_min.params[1], se: data.suhu_min.bse[1], t: data.suhu_min.tvalues[1], p: data.suhu_min.pvalues[1], r2: null },
+            { name: "Regresi Kuadratik Suhu Min (X²)", val: data.suhu_min.params[2], se: data.suhu_min.bse[2], t: data.suhu_min.tvalues[2], p: data.suhu_min.pvalues[2], r2: null },
+
+            { name: "Regresi Kuadratik Suhu Rata (Konstanta)", val: data.suhu_rata.params[0], se: data.suhu_rata.bse[0], t: data.suhu_rata.tvalues[0], p: data.suhu_rata.pvalues[0], r2: data.suhu_rata.r2 },
+            { name: "Regresi Kuadratik Suhu Rata (X)", val: data.suhu_rata.params[1], se: data.suhu_rata.bse[1], t: data.suhu_rata.tvalues[1], p: data.suhu_rata.pvalues[1], r2: null },
+            { name: "Regresi Kuadratik Suhu Rata (X²)", val: data.suhu_rata.params[2], se: data.suhu_rata.bse[2], t: data.suhu_rata.tvalues[2], p: data.suhu_rata.pvalues[2], r2: null },
+
+            { name: "Regresi Kuadratik Suhu Maks (Konstanta)", val: data.suhu_maks.params[0], se: data.suhu_maks.bse[0], t: data.suhu_maks.tvalues[0], p: data.suhu_maks.pvalues[0], r2: data.suhu_maks.r2 },
+            { name: "Regresi Kuadratik Suhu Maks (X)", val: data.suhu_maks.params[1], se: data.suhu_maks.bse[1], t: data.suhu_maks.tvalues[1], p: data.suhu_maks.pvalues[1], r2: null },
+            { name: "Regresi Kuadratik Suhu Maks (X²)", val: data.suhu_maks.params[2], se: data.suhu_maks.bse[2], t: data.suhu_maks.tvalues[2], p: data.suhu_maks.pvalues[2], r2: null },
+
+            { name: "Regresi Kuadratik Curah Hujan (Konstanta)", val: data.curah_hujan.params[0], se: data.curah_hujan.bse[0], t: data.curah_hujan.tvalues[0], p: data.curah_hujan.pvalues[0], r2: data.curah_hujan.r2 },
+            { name: "Regresi Kuadratik Curah Hujan (X)", val: data.curah_hujan.params[1], se: data.curah_hujan.bse[1], t: data.curah_hujan.tvalues[1], p: data.curah_hujan.pvalues[1], r2: null },
+            { name: "Regresi Kuadratik Curah Hujan (X²)", val: data.curah_hujan.params[2], se: data.curah_hujan.bse[2], t: data.curah_hujan.tvalues[2], p: data.curah_hujan.pvalues[2], r2: null },
+
+            { name: "Regresi Berganda (Konstanta)", val: data.ganda.params[0], se: data.ganda.bse[0], t: data.ganda.tvalues[0], p: data.ganda.pvalues[0], r2: data.ganda.r2 },
+            { name: "Regresi Berganda (Suhu Rata)", val: data.ganda.params[1], se: data.ganda.bse[1], t: data.ganda.tvalues[1], p: data.ganda.pvalues[1], r2: null },
+            { name: "Regresi Berganda (Curah Hujan)", val: data.ganda.params[2], se: data.ganda.bse[2], t: data.ganda.tvalues[2], p: data.ganda.pvalues[2], r2: null }
+        ];
+
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-6 py-2.5 font-medium text-slate-700 font-semibold text-xs">${r.name}</td>
+                <td class="px-6 py-2.5 text-right font-mono">${r.val.toFixed(4)}</td>
+                <td class="px-6 py-2.5 text-right text-slate-400 font-mono">${r.se.toFixed(4)}</td>
+                <td class="px-6 py-2.5 text-right font-mono">${r.t.toFixed(4)}</td>
+                <td class="px-6 py-2.5 text-right font-mono font-bold text-slate-800">${r.p.toFixed(4)}</td>
+                <td class="px-6 py-2.5 text-right text-blue-600 font-bold font-mono">${r.r2 !== null ? (r.r2 * 100).toFixed(1) + '%' : '-'}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        // --- RENDER GRAFIK KANAN (REGRESI GANDA) ---
+        const ctxGanda = document.getElementById('chart-ganda').getContext('2d');
+        new Chart(ctxGanda, {
+            type: 'line',
+            data: {
+                labels: data.tahun,
+                datasets: [
+                    {
+                        label: 'Aktual',
+                        data: data.y,
+                        borderColor: '#1e3a8a',
+                        backgroundColor: '#1e3a8a',
+                        borderWidth: 3,
+                        tension: 0.1,
+                        pointStyle: 'circle',
+                        pointRadius: 6
+                    },
+                    {
+                        label: 'Prediksi Ganda',
+                        data: data.ganda.pred,
+                        borderColor: '#e11d48',
+                        borderDash: [5, 5],
+                        borderWidth: 2.5,
+                        tension: 0.1,
+                        pointStyle: 'rectRot',
+                        pointRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 15, font: { size: 11 } } }
+                },
+                scales: {
+                    y: { title: { display: true, text: 'ku/ha', font: { size: 10 } } }
+                }
+            }
+        });
+
+        // --- LOGIKA UTAMA GRAFIK KIRI (REGRESI KUADRATIK DINAMIS) ---
+        const ctxKuadratik = document.getElementById('chart-kuadratik').getContext('2d');
+        let chartKuadratikObj = null;
+
+        function updateKuadratikChart(key) {
+            const targetData = data[key];
+            const rawX = targetData.raw_x;
+            const rawY = data.y;
+            const [b0, b1, b2] = targetData.params;
+            const opt = targetData.opt;
+
+            // Hitung kurva mulus untuk parabola fitting
+            const minX = Math.min(...rawX);
+            const maxX = Math.max(...rawX);
+            const padding = (maxX - minX) * 0.1;
+            const curveRange = [];
+            const curvePoints = [];
+
+            const steps = 100;
+            for (let i = 0; i <= steps; i++) {
+                const xVal = (minX - padding) + ((maxX - minX + 2*padding) * i / steps);
+                const yVal = b0 + b1 * xVal + b2 * (xVal ** 2);
+                curveRange.push(xVal);
+                curvePoints.push({ x: xVal, y: yVal });
+            }
+
+            // Format Scatter Points data riil
+            const scatterPoints = rawX.map((val, idx) => ({ x: val, y: rawY[idx] }));
+
+            // Update Deskripsi Interpretasi Dinamis
+            document.getElementById('panel-interpretasi').innerHTML = interpretasiDB[key];
+
+            if (chartKuadratikObj) {
+                chartKuadratikObj.destroy();
+            }
+
+            chartKuadratikObj = new Chart(ctxKuadratik, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Data Riil Observasi',
+                            data: scatterPoints,
+                            backgroundColor: '#000000',
+                            borderColor: '#000000',
+                            radius: 7,
+                            showLine: false,
+                            zIndex: 10
+                        },
+                        {
+                            label: 'Kurva Tren Kuadratik (Regresi)',
+                            data: curvePoints,
+                            type: 'line',
+                            borderColor: key === 'curah_hujan' ? '#10b981' : '#f97316',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: `Titik Optimum Optimum (${opt.toFixed(2)})`,
+                            data: [{ x: opt, y: Math.min(...rawY) - 1 }, { x: opt, y: Math.max(...rawY) + 1 }],
+                            type: 'line',
+                            borderColor: '#8b5cf6',
+                            borderDash: [6, 4],
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: key === 'curah_hujan' ? 'Curah Hujan (mm/bulan)' : 'Suhu (°C)', font: { size: 12, weight: 'bold' } }
+                        },
+                        y: {
+                            title: { display: true, text: 'Produktivitas (ku/ha)', font: { size: 12, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Event Listener dropdown
+        document.getElementById('select-x').addEventListener('change', (e) => {
+            updateKuadratikChart(e.target.value);
+        });
+
+        // Inisialisasi awal saat dimuat pertama kali
+        updateKuadratikChart('suhu_rata');
+    </script>
+</body>
+</html>
